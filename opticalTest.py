@@ -56,24 +56,32 @@ while True:
     old_gray_roi = None
     frame_gray_roi = None
     
-    if len(body) > 0:
-        for (x,y,w,h) in body:
-            xpos.append(x)
-            ypos.append(y)
-            width.append(w)
-            height.append(h)
-        old_gray_roi = old_gray[y:y+h, x:x+w]
-        frame_gray[ypos[0]:ypos[0]+height[0], xpos[0]:xpos[0]+width[0]]
-        p0 = cv.goodFeaturesToTrack(old_gray_roi, mask = None, **feature_params)
-    else:
-        if isFirst == True:
+    if isFirst == True:
+        if len(body) > 0:
+            for (x,y,w,h) in body:
+                old_gray_roi = old_gray[y:y+h, x:x+w]
+                frame_gray[y:y+h, x:x+w]
+                xpos.append(x)
+                ypos.append(y)
+                width.append(w)
+                height.append(h)
+        else:
             old_gray_roi = old_gray
             frame_gray_roi = frame_gray
+    else:
+        if len(body) > 0:
+            for (x,y,w,h) in body:
+                old_gray_roi = old_gray[ypos[0]:ypos[0]+height[0], xpos[0]:xpos[0]+width[0]]
+                frame_gray_roi = frame_gray[y:y+h,x:x+w]
+                xpos.append(x)
+                ypos.append(y)
+                width.append(w)
+                height.append(h)
         else:
             old_gray_roi = old_gray[ypos[0]:ypos[0]+height[0], xpos[0]:xpos[0]+width[0]]
-        frame_gray[ypos[0]:ypos[0]+height[0], xpos[0]:xpos[0]+width[0]]
-        p0 = cv.goodFeaturesToTrack(old_gray_roi, mask = None, **feature_params)
+            frame_gray_roi = frame_gray[ypos[0]:ypos[0]+height[0], xpos[0]:xpos[0]+width[0]]
     
+    p0 = cv.goodFeaturesToTrack(old_gray_roi, mask = None, **feature_params)
     # calculate optical flow
     p1, st, err = cv.calcOpticalFlowPyrLK(old_gray_roi, frame_gray_roi, p0, None, **lk_params)
     
