@@ -18,20 +18,27 @@ vectors = list()    #속도, 가속도, 아래로 이동했는지 여부
 old_speed = 0
 dt = 1/cap.get(cv.CAP_PROP_FPS)
 
-while(1):
+while True:
     ret, frame2 = cap.read()
     if not ret:
         print('No frames grabbed!')
         break
     next = cv.cvtColor(frame2, cv.COLOR_BGR2GRAY)
-    flow = cv.calcOpticalFlowFarneback(prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+    flow = cv.calcOpticalFlowFarneback(prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, cv.OPTFLOW_FARNEBACK_GAUSSIAN)
     
+    #영상의 높이, 넓이
     h,w = frame2.shape[:2]
     
-    idx_y,idx_x = np.mgrid[step/2:h:step,step/2:w:step].astype(np.float64)
+    #16픽셀로 나누어 움직임 계산(그리드로 벡터 시각화한 코드 응용)
+    #step/2:h:step -> 8부터 영상의 높이까지 16의 간격
+    #step/2:w:step -> 8부터 영상의 넓이까지 16의 간격
+    idx_y,idx_x = np.mgrid[step/2:h:step,step/2:w:step].astype(np.int64)
+    
+    #x축의 인덱스와 y축의 인덱스 값을 열 기준으로 결합 -> (x축 인덱스, y축 인덱스) 형태, 그 후 2차원 배열로 변환 
     indices =  np.stack( (idx_x,idx_y), axis =-1).reshape(-1,2)
     
-    for dx, dy in indices:
+    for x, y in indices:
+        dx,dy = flow[y, x].astype(np.int64)
         speed = np.sqrt(dx**2 + dy**2)
         acceleration = (speed - old_speed)/dt
         isDownwards = False
@@ -47,9 +54,6 @@ while(1):
     k = cv.waitKey(30) & 0xff
     if k == 27:
         break
-    """elif k == ord('s'):
-        cv.imwrite('opticalfb.png', frame2)
-        cv.imwrite('opticalhsv.png', bgr)"""
     prvs = next
 cv.destroyAllWindows()
 
