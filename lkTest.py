@@ -25,7 +25,7 @@ lk_params = dict( winSize  = (15, 15),
 # Take first frame and find corners in it
 ret, old_frame = cap.read()
 
-#old frame을 회색으로 변환 (밝기 향상성성)
+#old frame을 회색으로 변환 (밝기 향상성)
 old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
 p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 
@@ -68,15 +68,16 @@ while True:
     for i, (new, old) in enumerate(zip(good_new,good_old)):
         #frame에서의 point와 old frame의 point의 차 = dx, dy
         dx, dy = new.ravel() - old.ravel()
-        speed = np.sqrt(dx**2 + dy**2)
-        acceleration = (speed - old_speed)/dt
-        isDownwards = False
+        speed = float(np.sqrt(dx**2 + dy**2))
+        acceleration = float((speed - old_speed)/dt)
+        isDownwards = None
+        angle = float(np.arctan2(dy,dx)*(180.0/np.pi))
         
         #dx 양수: 오른쪽 이동, dy 증가: 아래로 이동
         if dy > 0:
             isDownwards = True
             
-        vectors.append((speed,acceleration,isDownwards))
+        vectors.append((speed,acceleration,isDownwards,angle))
         
     
     cv.imshow('frame', frame)

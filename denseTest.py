@@ -39,12 +39,13 @@ while True:
     
     for x, y in indices:
         dx,dy = flow[y, x].astype(np.int64)
-        speed = np.sqrt(dx**2 + dy**2)
-        acceleration = (speed - old_speed)/dt
-        isDownwards = False
+        speed = float(np.sqrt(dx**2 + dy**2))
+        acceleration = float((speed - old_speed)/dt)
+        isDownwards = None
+        angle = float(np.arctan2(dy,dx)*(180.0/np.pi))
         if dy > 0:
             isDownwards = True
-        vectors.append((speed,acceleration,isDownwards))
+        vectors.append((speed,acceleration,isDownwards,angle))
   
     mag, ang = cv.cartToPolar(flow[..., 0], flow[..., 1])
     hsv[..., 0] = ang*180/np.pi/2
