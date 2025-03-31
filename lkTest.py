@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 as cv
 import argparse
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('image', type=str, help='path to image file')
@@ -25,6 +26,8 @@ color = np.random.randint(0, 255, (100, 3))
 # Take first frame and find corners in it
 ret, old_frame = cap.read()
 
+old_t = time.time()
+
 #old frame을 회색으로 변환 (밝기 향상성)
 old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
 p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
@@ -33,15 +36,19 @@ p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 mask = np.zeros_like(old_frame)
 
 #속도, 가속도, 아래로 이동했는지 여부
-vectors = list()    
-old_speed = 0
+vectors = list()
+
+speed = list()    
+old_speed = list(0)
+old_speed[0] = 0
 
 #시간 변화 (영상의 경우: 영상의 fps 정보 기반,)
-dt = 1/cap.get(cv.CAP_PROP_FPS)
-
+#dt = 1/cap.get(cv.CAP_PROP_FPS)
 while True:
     ret, frame = cap.read()
     
+    new_t = time.time()
+    dt = new_t - old_t
     if not ret:
         print('No frames grabbed!')
         break
@@ -51,7 +58,9 @@ while True:
     #print(p0.shape,p1.shape)
     # calculate optical flow
     p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params,flags=cv.OPTFLOW_LK_GET_MIN_EIGENVALS)
+    p0r, st, err = cv.calcOpticalFlowPyrLK(frame_gray,old_gray,p1,None,**lk_params,flags=cv.OPTFLOW_LK_GET_MIN_EIGENVALS)
     
+    print("p0 : ",p0,"p0r : ",p0r,"d : ",p0 - p0r)
     # Select good points
     if p1 is not None:
         good_new = p1[st==1]
@@ -68,20 +77,20 @@ while True:
     
     for i, (new, old) in enumerate(zip(good_new,good_old)):
         #frame에서의 point와 old frame의 point의 차 = dx, dy
+        #print(new,old,dt)
         dx, dy = new.ravel() - old.ravel()
-        speed = float(np.sqrt(dx**2 + dy**2)/dt)
-        acceleration = float((speed - old_speed)/dt)
+        speed.append(float(np.sqrt(dx**2 + dy**2)/dt))
+        acceleration = float((speed[i] - old_speed[i])/dt)
         isDownwards = False
         angle = float(np.arctan2(dy,dx)*(180.0/np.pi))
         
-        old_speed = speed
+        old_speed.append(speed[i])
         #dx 양수: 오른쪽 이동, dy 증가: 아래로 이동
         #angle 음수(ex) -15 ~155 )
         if angle < -15 and angle >-155:
             isDownwards = True
             
-        vectors.append((speed,acceleration,isDownwards,angle))
-        
+        vectors.append((speed,acceleration,isDownwards,angle))        
     
     cv.imshow('frame', img)
     
@@ -92,9 +101,10 @@ while True:
         break
     
     # Now update the previous frame and previous points
+    old_t = new_t
     old_gray = frame_gray.copy()
     p0 = good_new.reshape(-1, 1, 2)
     
 cv.destroyAllWindows()
 
-print(vectors)
+#print(vectors)
