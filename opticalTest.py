@@ -4,6 +4,9 @@ import argparse
 
 from collections import deque
 
+def getVector():
+    
+
 parser = argparse.ArgumentParser(description='This sample demonstrates Lucas-Kanade Optical Flow calculation. \
                                               The example file can be downloaded from: \
                                               https://www.bogotobogo.com/python/OpenCV_Python/images/mean_shift_tracking/slow_traffic_small.mp4')
@@ -37,6 +40,12 @@ p0 = None
 # Create a mask image for drawing purposes
 mask = np.zeros_like(old_frame)
 
+vectors = list()    
+old_speed = 0
+
+#시간 변화 (영상의 경우: 영상의 fps 정보 기반, 실시간의 경우: time 함수 응용)
+dt = 1/cap.get(cv.CAP_PROP_FPS)
+
 xpos,ypos,width,height = deque(maxlen=1)
 
 isFirst = False 
@@ -60,7 +69,7 @@ while True:
         if len(body) > 0:
             for (x,y,w,h) in body:
                 old_gray_roi = old_gray[y:y+h, x:x+w]
-                frame_gray[y:y+h, x:x+w]
+                frame_gray_roi = frame_gray[y:y+h, x:x+w]
                 xpos.append(x)
                 ypos.append(y)
                 width.append(w)
@@ -90,12 +99,19 @@ while True:
         good_new = p1[st==1]
         good_old = p0[st==1]
     
-    # draw the tracks
-    for i, (new, old) in enumerate(zip(good_new, good_old)):
-        a, b = new.ravel()
-        c, d = old.ravel()
-        mask = cv.line(mask, (int(a), int(b)), (int(c), int(d)), color[i].tolist(), 2)
-        frame = cv.circle(frame, (int(a), int(b)), 5, color[i].tolist(), -1)
+    for i, (new, old) in enumerate(zip(good_new,good_old)):
+        #frame에서의 point와 old frame의 point의 차 = dx, dy
+        dx, dy = new.ravel() - old.ravel()
+        speed = float(np.sqrt(dx**2 + dy**2))
+        acceleration = float((speed - old_speed)/dt)
+        isDownwards = None
+        angle = float(np.arctan2(dy,dx)*(180.0/np.pi))
+        
+        #dx 양수: 오른쪽 이동, dy 증가: 아래로 이동
+        if dy > 0:
+            isDownwards = True
+            
+        vectors.append((speed,acceleration,isDownwards,angle))
         
     img = cv.add(frame, mask)
     cv.imshow('frame', img)  

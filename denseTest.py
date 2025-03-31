@@ -14,8 +14,10 @@ hsv[..., 1] = 255
 
 step = 16
 
-vectors = list()    #속도, 가속도, 아래로 이동했는지 여부
+vectors = list()    #추출된 시각(스탬프프),속도, 가속도, 각도(방향),아래로 이동했는지 여부(각도로 판별)
 old_speed = 0
+
+#시간 함수 사용으로 수정 (ms 단위)
 dt = 1/cap.get(cv.CAP_PROP_FPS)
 
 while True:
@@ -24,7 +26,8 @@ while True:
         print('No frames grabbed!')
         break
     next = cv.cvtColor(frame2, cv.COLOR_BGR2GRAY)
-    flow = cv.calcOpticalFlowFarneback(prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, cv.OPTFLOW_FARNEBACK_GAUSSIAN)
+    #가우시안 삭제필요
+    flow = cv.calcOpticalFlowFarneback(prvs, next, None, 0.5, 3, 15, 3, 5, 1.2)
     
     #영상의 높이, 넓이
     h,w = frame2.shape[:2]
@@ -39,12 +42,17 @@ while True:
     
     for x, y in indices:
         dx,dy = flow[y, x].astype(np.int64)
-        speed = float(np.sqrt(dx**2 + dy**2))
+        #speed, acc 수정 & 벡터 추출 시간, 평면 좌표계 -> 속도 제공됨(직접 x)
+        speed = float(np.sqrt(dx**2 + dy**2)/dt)
         acceleration = float((speed - old_speed)/dt)
         isDownwards = None
         angle = float(np.arctan2(dy,dx)*(180.0/np.pi))
-        if dy > 0:
+        
+        old_speed = speed
+        """if dy > 0:
             isDownwards = True
+        else:
+            isDownwards = False"""
         vectors.append((speed,acceleration,isDownwards,angle))
   
     mag, ang = cv.cartToPolar(flow[..., 0], flow[..., 1])
