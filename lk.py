@@ -34,11 +34,10 @@ class App:
             vis = frame.copy()
             
             if len(self.tracks) > 0:
-                print(self.prev_gray)
+                print("hi")
                 img0, img1 = self.prev_gray, frame_gray
-                print(len([tr[-1] for tr in self.tracks]))
                 p0 = np.float32([tr[-1] for tr in self.tracks]).reshape(-1, 1, 2)
-                print(p0)
+                #print(p0)
                 p1, st, err = cv.calcOpticalFlowPyrLK(img0, img1, p0, None, **lk_params)
                 p0r ,st, err = cv.calcOpticalFlowPyrLK(img1, img0, p1, None, **lk_params)
                 
@@ -54,12 +53,12 @@ class App:
                         del tr[0]
                     
                     new_tracks.append(tr)
-                    cv.circle(vis,(x,y), 2, (0,255,0), -1)
+                    cv.circle(vis,(int(x),int(y)), 2, (0,255,0), -1)
                     
                 self.tracks = new_tracks
                 cv.polylines(vis,[np.int32(tr) for tr in self.tracks], False, (0,255,0))
                 
-            if self.frame_idx & self.detect_interval == 0:
+            if self.frame_idx % self.detect_interval == 0:
                 mask = np.zeros_like(frame_gray)
                 mask[:] = 255
                 for x,y in [np.int32(tr[-1]) for tr in self.tracks]:
@@ -67,7 +66,7 @@ class App:
                 p = cv.goodFeaturesToTrack(frame_gray,mask=mask,**feature_params)
                 if p is not None:
                     for x,y in np.float32(p).reshape(-1,2):
-                        self.tracks.append([x,y])
+                        self.tracks.append([(x,y)])
             
             self.frame_idx += 1
             self.prev_gray = frame_gray

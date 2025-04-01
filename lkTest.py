@@ -38,9 +38,9 @@ mask = np.zeros_like(old_frame)
 #속도, 가속도, 아래로 이동했는지 여부
 vectors = list()
 
-speed = list()    
-old_speed = list(0)
-old_speed[0] = 0
+#speed = list()    
+old_speed = list()
+old_speed.append(0)
 
 #시간 변화 (영상의 경우: 영상의 fps 정보 기반,)
 #dt = 1/cap.get(cv.CAP_PROP_FPS)
@@ -57,10 +57,10 @@ while True:
     
     #print(p0.shape,p1.shape)
     # calculate optical flow
-    p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params,flags=cv.OPTFLOW_LK_GET_MIN_EIGENVALS)
-    p0r, st, err = cv.calcOpticalFlowPyrLK(frame_gray,old_gray,p1,None,**lk_params,flags=cv.OPTFLOW_LK_GET_MIN_EIGENVALS)
+    p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params,flags=0)
+    #p0r, st, err = cv.calcOpticalFlowPyrLK(frame_gray,old_gray,p1,None,**lk_params,flags=0)
     
-    print("p0 : ",p0,"p0r : ",p0r,"d : ",p0 - p0r)
+    #print("p0 : ",p0,"p0r : ",p0r,"d : ",p0 - p0r)
     # Select good points
     if p1 is not None:
         good_new = p1[st==1]
@@ -77,14 +77,15 @@ while True:
     
     for i, (new, old) in enumerate(zip(good_new,good_old)):
         #frame에서의 point와 old frame의 point의 차 = dx, dy
-        #print(new,old,dt)
+        print(new,old)
         dx, dy = new.ravel() - old.ravel()
-        speed.append(float(np.sqrt(dx**2 + dy**2)/dt))
-        acceleration = float((speed[i] - old_speed[i])/dt)
+        speed = float(np.sqrt(dx**2 + dy**2)/dt)
+        acceleration = float((speed - old_speed[i])/dt)
         isDownwards = False
         angle = float(np.arctan2(dy,dx)*(180.0/np.pi))
         
-        old_speed.append(speed[i])
+        #speed.append(speed)
+        old_speed.append(speed)
         #dx 양수: 오른쪽 이동, dy 증가: 아래로 이동
         #angle 음수(ex) -15 ~155 )
         if angle < -15 and angle >-155:
