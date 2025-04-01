@@ -32,6 +32,7 @@ old_t = time.time()
 old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
 p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 
+print(p0.shape)
 # Create a mask image for drawing purposes
 mask = np.zeros_like(old_frame)
 
@@ -49,6 +50,8 @@ while True:
     
     new_t = time.time()
     dt = new_t - old_t
+    if dt == 0:
+        print(new_t,old_t)
     if not ret:
         print('No frames grabbed!')
         break
@@ -66,18 +69,17 @@ while True:
         good_new = p1[st==1]
         good_old = p0[st==1]
     
+    temp = list()
     # draw the tracks
     for i, (new, old) in enumerate(zip(good_new, good_old)):
         a, b = new.ravel()
         c, d = old.ravel()
         mask = cv.line(mask, (int(a), int(b)), (int(c), int(d)), color[i].tolist(), 2)
-        frame = cv.circle(frame, (int(a), int(b)), 5, color[i].tolist(), -1)
-    
-    img = cv.add(frame, mask)
-    
-    for i, (new, old) in enumerate(zip(good_new,good_old)):
+        frame = cv.circle(frame, (int(a), int(b)), 2, color[i].tolist(), -1)
+
+        
         #frame에서의 point와 old frame의 point의 차 = dx, dy
-        print(new,old)
+        #print(new,old)
         dx, dy = new.ravel() - old.ravel()
         speed = float(np.sqrt(dx**2 + dy**2)/dt)
         acceleration = float((speed - old_speed[i])/dt)
@@ -90,8 +92,14 @@ while True:
         #angle 음수(ex) -15 ~155 )
         if angle < -15 and angle >-155:
             isDownwards = True
-            
-        vectors.append((speed,acceleration,isDownwards,angle))        
+        
+        temp.append(i)
+        vectors.append((speed,acceleration,isDownwards,angle))  
+        
+    img = cv.add(frame, mask)        
+    
+    print(temp)
+    cv.polylines(img,[np.int32(i) for i in temp],False,color[i].tolist())      
     
     cv.imshow('frame', img)
     
@@ -104,7 +112,7 @@ while True:
     # Now update the previous frame and previous points
     old_t = new_t
     old_gray = frame_gray.copy()
-    p0 = good_new.reshape(-1, 1, 2)
+    p0 = np.copy(p1)
     
 cv.destroyAllWindows()
 
