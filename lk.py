@@ -3,6 +3,8 @@ import cv2 as cv
 import argparse
 import time
 
+start = time.time()
+
 parser = argparse.ArgumentParser()
 parser.add_argument('image', type=str, help='path to image file')
 args = parser.parse_args()
@@ -36,15 +38,16 @@ class App:
             if len(self.tracks) > 0:
                 img0, img1 = self.prev_gray, frame_gray
                 p0 = np.float32([tr[-1] for tr in self.tracks]).reshape(-1, 1, 2)
-                print(p0.shape)
+                #print(p0.shape)
                 p1, st, err = cv.calcOpticalFlowPyrLK(img0, img1, p0, None, **lk_params)
                 p0r ,st, err = cv.calcOpticalFlowPyrLK(img1, img0, p1, None, **lk_params)
                 
                 d = abs(p0 - p0r).reshape(-1,2).max(-1)
                 good = d < 1
+                
                 new_tracks = []
                 for tr, (x, y), good_flag in zip(self.tracks, p1.reshape(-1,2),good):
-                    print(tr,(x,y))
+                    #print(tr,(x,y))
                     if not good_flag:
                         continue
                     
@@ -83,3 +86,5 @@ class App:
 video_src = args.image
 App(video_src).run()
 cv.destroyAllWindows()
+
+print(time.time()-start)

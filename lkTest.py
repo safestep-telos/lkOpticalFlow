@@ -69,12 +69,13 @@ while True:
         good_new = p1[st==1]
         good_old = p0[st==1]
     
+    print(good_new)
     temp = list()
     # draw the tracks
     for i, (new, old) in enumerate(zip(good_new, good_old)):
         a, b = new.ravel()
         c, d = old.ravel()
-        mask = cv.line(mask, (int(a), int(b)), (int(c), int(d)), color[i].tolist(), 2)
+        #mask = cv.line(mask, (int(a), int(b)), (int(c), int(d)), color[i].tolist(), 2)
         frame = cv.circle(frame, (int(a), int(b)), 2, color[i].tolist(), -1)
 
         
@@ -93,12 +94,12 @@ while True:
         if angle < -15 and angle >-155:
             isDownwards = True
         
-        temp.append(i)
+        temp.append([(a,b)])
         vectors.append((speed,acceleration,isDownwards,angle))  
         
     img = cv.add(frame, mask)        
     
-    print(temp)
+    #print([np.int32(i) for i in temp])
     cv.polylines(img,[np.int32(i) for i in temp],False,color[i].tolist())      
     
     cv.imshow('frame', img)
