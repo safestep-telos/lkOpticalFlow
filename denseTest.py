@@ -40,8 +40,7 @@ while True:
     
     next = cv.cvtColor(frame2, cv.COLOR_BGR2GRAY)
     flow = cv.calcOpticalFlowFarneback(prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-    
-    #print(flow)
+    #print(type(flow),flow.shape)
     #영상의 높이, 넓이
     #h,w = frame2.shape[:2]
     

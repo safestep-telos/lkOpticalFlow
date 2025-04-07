@@ -2,12 +2,18 @@ import numpy as np
 import cv2 as cv
 import argparse
 import time
+import mediapipe as mp
+
 ## 목표 그리드 형식으로 변경, 해상도별로 (원본제외 4단계까지) 계산 (피라미드),  
 start = time.time()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('image', type=str, help='path to image file')
 args = parser.parse_args()
+
+mp_pose = mp.solutions.pose
+pose = mp_pose.Pose()
+mp_drawing = mp.solutions.drawing_utils
 
 termination = (cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03)
 feature_params = dict(maxCorners = 200, qualityLevel = 0.01, minDistance = 7, blockSize = 7)
@@ -33,6 +39,11 @@ vector = list()
 
 while True:
     ret, frame = cam.read()
+    
+    if not ret:
+        print("No frame grabbed")
+        break
+    
     if frame_idx==0:
         old_t = time.time()
     else:
@@ -40,9 +51,8 @@ while True:
     
     dt = new_t - old_t
     
-    if not ret:
-        print("No frame grabbed")
-        break
+    frame_rgb = cv.cvtColor(frame,cv.COLOR_BGR2RGB)
+    results = pose.process(frame_rgb) 
             
     frame_gray = cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
     vis = frame.copy()

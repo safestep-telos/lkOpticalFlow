@@ -17,8 +17,10 @@ feature_params = dict( maxCorners = 100,
 
 # Parameters for lucas kanade optical flow
 lk_params = dict( winSize  = (15, 15),
-                  maxLevel = 2,
-                  criteria = (cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
+                  maxLevel = 5,
+                  criteria = (cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03),
+                  flags = 0,
+                  minEigThreshold = 1e-4)
 
 # Create some random colors
 color = np.random.randint(0, 255, (100, 3))
@@ -30,15 +32,15 @@ old_t = time.time()
 
 step = 16
 h,w = old_frame.shape[:2]
+idx_y,idx_x = np.mgrid[step/2:h:step,step/2:w:step].astype(np.int64)
+indices =  np.stack( (idx_x,idx_y), axis =-1).reshape(-1,2)
+
 idx_y,idx_x = np.mgrid[step/2:h:step,step/2:w:step].astype(np.float32)
-indices =  np.stack( (idx_x,idx_y), axis =-1).reshape(-1,1,2)
+p0 =  np.stack( (idx_x,idx_y), axis =-1).reshape(-1,2)
 
 #old frame을 회색으로 변환 (밝기 향상성)
 old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
-p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
-
-print(p0.dtype)
-
+#p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 # Create a mask image for drawing purposes
 mask = np.zeros_like(old_frame)
 
@@ -48,6 +50,9 @@ vectors = list()
 #speed = list()    
 old_speed = list()
 old_speed.append(0)
+
+"""flow = []
+flow = np.array(flow,np.float32)"""
 
 while True:
     ret, frame = cap.read()
@@ -63,46 +68,42 @@ while True:
     frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)    
     
     # calculate optical flow
-    p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray,indices, None, **lk_params,flags=0)
-    
-    # Select good points
-    if p1 is not None:
-        good_new = p1[st==1]
+    p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray,p0, None, **lk_params)
     
     #print(p1)
+    # Select good points
+    if p1 is not None:
+        #print(p1.shape,st.shape)
+        good_new = p1.reshape(-1,1,2)[st==1]
+        good_old = p0.reshape(-1,1,2)[st==1]
+    
     temp = list()
+    flow = np.zeros((h,w,2),dtype=np.float32)
     # draw the tracks
-    """for (new, old) in enumerate(zip(good_new, p0)):
-        a, b = new.ravel()
-        c, d = old.ravel()
-        mask = cv.line(mask, (int(a), int(b)), (int(c), int(d)), color[i].tolist(), 2)
-        frame = cv.circle(frame, (int(a), int(b)), 2, color[i].tolist(), -1)
-
-        
-        #frame에서의 point와 old frame의 point의 차 = dx, dy
-        #print(new,old)
+    for i, (new, old) in enumerate(zip(good_new,good_old)):
+        x,y = old.ravel()
+        x = int(x)
+        y = int(y)
+        flow[y,x] = new.ravel() - old.ravel()
         dx, dy = new.ravel() - old.ravel()
-        speed = float(np.sqrt(dx**2 + dy**2)/dt)
-        acceleration = float((speed - old_speed[i])/dt)
-        isDownwards = False
-        angle = float(np.arctan2(dy,dx)*(180.0/np.pi))
+        dx = int(dx)
+        dy = int(dy)
+        cv.line(frame, (x,y), (x+dx, y+dy), (0,255, 0),2, cv.LINE_AA )
+        #frame에서의 point와 old frame의 point의 차 = dx, dy
         
-        #speed.append(speed)
-        old_speed.append(speed)
-        #dx 양수: 오른쪽 이동, dy 증가: 아래로 이동
-        #angle 음수(ex) -15 ~155 )
-        if angle < -15 and angle >-155:
-            isDownwards = True
+    for x, y in indices:
+        cv.circle(frame, (x,y), 1, (0,255,0), -1)
+        dx,dy = flow[y, x].astype(np.int64)
+        #cv.line(frame, (x,y), (x+dx, y+dy), (0,255, 0),2, cv.LINE_AA )
         
-        temp.append(i)
-        vectors.append((speed,acceleration,isDownwards,angle))  
-        
-    img = cv.add(frame, mask)        
+    #print(flow)   
+     
+    #img = cv.add(frame, mask)        
     
-    print(temp)
-    cv.polylines(img,[np.int32(i) for i in temp],False,color[i].tolist())      
+    #print(temp)
+    #cv.polylines(img,[np.int32(i) for i in temp],False,(0,255,0))      
     
-    cv.imshow('frame', img)
+    cv.imshow('frame', frame)
     
     #esc키를 누르면 종료
     k = cv.waitKey(30) & 0xff
@@ -111,9 +112,8 @@ while True:
         break
     
     # Now update the previous frame and previous points
-    old_t = new_t
-    old_gray = frame_gray.copy()
-    p0 = np.copy(p1)"""
+    #old_t = new_t
+    #old_gray = frame_gray.copy()
     
 cv.destroyAllWindows()
 

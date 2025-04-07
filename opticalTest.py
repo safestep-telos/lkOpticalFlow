@@ -1,21 +1,13 @@
 import numpy as np
 import cv2 as cv
 import argparse
+import time
 
-from collections import deque
-
-def getVector():
-    
-
-parser = argparse.ArgumentParser(description='This sample demonstrates Lucas-Kanade Optical Flow calculation. \
-                                              The example file can be downloaded from: \
-                                              https://www.bogotobogo.com/python/OpenCV_Python/images/mean_shift_tracking/slow_traffic_small.mp4')
+parser = argparse.ArgumentParser()
 parser.add_argument('image', type=str, help='path to image file')
 args = parser.parse_args()
 
 cap = cv.VideoCapture(args.image)
-
-body_cascade = cv.CascadeClassifier('haarcascade_fullbody.xml')
 
 # params for ShiTomasi corner detection
 feature_params = dict( maxCorners = 100,
@@ -25,7 +17,7 @@ feature_params = dict( maxCorners = 100,
 
 # Parameters for lucas kanade optical flow
 lk_params = dict( winSize  = (15, 15),
-                  maxLevel = 3,
+                  maxLevel = 5,
                   criteria = (cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
 
 # Create some random colors
@@ -33,95 +25,88 @@ color = np.random.randint(0, 255, (100, 3))
 
 # Take first frame and find corners in it
 ret, old_frame = cap.read()
-old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
-p0 = None
-#p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 
+old_t = time.time()
+
+#old frame을 회색으로 변환 (밝기 향상성)
+old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
+p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 # Create a mask image for drawing purposes
 mask = np.zeros_like(old_frame)
 
-vectors = list()    
-old_speed = 0
+#속도, 가속도, 아래로 이동했는지 여부
+vectors = list()
 
-#시간 변화 (영상의 경우: 영상의 fps 정보 기반, 실시간의 경우: time 함수 응용)
-dt = 1/cap.get(cv.CAP_PROP_FPS)
+#speed = list()    
+old_speed = list()
+old_speed.append(0)
 
-xpos,ypos,width,height = deque(maxlen=1)
+"""flow = []
+flow = np.array(flow,np.float32)"""
 
-isFirst = False 
-    
 while True:
     ret, frame = cap.read()
+    
+    new_t = time.time()
+    dt = new_t - old_t
+    if dt == 0:
+        print(new_t,old_t)
     if not ret:
         print('No frames grabbed!')
         break
     
-    frame_gray = cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
+    frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)    
     
-    blur = cv.GaussianBlur(frame_gray, (5, 5), 0)
-
-    body = body_cascade.detectMultiScale(blur, 1.05, 2, 0, (15, 15))
-    
-    old_gray_roi = None
-    frame_gray_roi = None
-    
-    if isFirst == True:
-        if len(body) > 0:
-            for (x,y,w,h) in body:
-                old_gray_roi = old_gray[y:y+h, x:x+w]
-                frame_gray_roi = frame_gray[y:y+h, x:x+w]
-                xpos.append(x)
-                ypos.append(y)
-                width.append(w)
-                height.append(h)
-        else:
-            old_gray_roi = old_gray
-            frame_gray_roi = frame_gray
-    else:
-        if len(body) > 0:
-            for (x,y,w,h) in body:
-                old_gray_roi = old_gray[ypos[0]:ypos[0]+height[0], xpos[0]:xpos[0]+width[0]]
-                frame_gray_roi = frame_gray[y:y+h,x:x+w]
-                xpos.append(x)
-                ypos.append(y)
-                width.append(w)
-                height.append(h)
-        else:
-            old_gray_roi = old_gray[ypos[0]:ypos[0]+height[0], xpos[0]:xpos[0]+width[0]]
-            frame_gray_roi = frame_gray[ypos[0]:ypos[0]+height[0], xpos[0]:xpos[0]+width[0]]
-    
-    p0 = cv.goodFeaturesToTrack(old_gray_roi, mask = None, **feature_params)
     # calculate optical flow
-    p1, st, err = cv.calcOpticalFlowPyrLK(old_gray_roi, frame_gray_roi, p0, None, **lk_params)
+    p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray,p0, None, **lk_params)
     
+    #print(p1)
     # Select good points
     if p1 is not None:
+        #print(p1.shape,st.shape)
         good_new = p1[st==1]
         good_old = p0[st==1]
     
+    #temp = list()
+    #flow = np.zeros((h,w,2),dtype=np.float32)
+    # draw the tracks
     for i, (new, old) in enumerate(zip(good_new,good_old)):
-        #frame에서의 point와 old frame의 point의 차 = dx, dy
         dx, dy = new.ravel() - old.ravel()
-        speed = float(np.sqrt(dx**2 + dy**2))
-        acceleration = float((speed - old_speed)/dt)
-        isDownwards = None
+        speed = float(np.sqrt(dx**2 + dy**2)/dt)
+        #acceleration = float((speed - old_speed[i])/dt)
+        isDownwards = False
         angle = float(np.arctan2(dy,dx)*(180.0/np.pi))
         
+        #speed.append(speed)
+        old_speed.append(speed)
         #dx 양수: 오른쪽 이동, dy 증가: 아래로 이동
-        if dy > 0:
+        #angle 음수(ex) -15 ~155 )
+        if angle < -15 and angle >-155:
             isDownwards = True
-            
-        vectors.append((speed,acceleration,isDownwards,angle))
         
-    img = cv.add(frame, mask)
-    cv.imshow('frame', img)  
-       
+        #temp.append(i)
+        vectors.append((new_t,speed,isDownwards,angle))
+        
+    #print(flow)   
+     
+    #img = cv.add(frame, mask)        
+    
+    #print(temp)
+    #cv.polylines(img,[np.int32(i) for i in temp],False,(0,255,0))      
+    
+    cv.imshow('frame', frame)
+    
+    #esc키를 누르면 종료
     k = cv.waitKey(30) & 0xff
+    
     if k == 27:
         break
     
     # Now update the previous frame and previous points
-    old_gray = frame_gray.copy()
-    p0 = good_new.reshape(-1, 1, 2)
+    old_t = new_t
+    p0 = p1.copy()
+    #old_gray = frame_gray.copy()
     
 cv.destroyAllWindows()
+
+#print(vectors)
