@@ -53,13 +53,14 @@ class App:
                     
                     tr.append((x,y))
                     if len(tr) > self.track_len:
+                        #print(tr,len(tr),tr[0],"\n")
                         del tr[0]
                     
                     new_tracks.append(tr)
                     cv.circle(vis,(int(x),int(y)), 2, (0,255,0), -1)
                     
                 self.tracks = new_tracks
-                #print(self.tracks)
+                #print(tr)
                 cv.polylines(vis,[np.int32(tr) for tr in self.tracks], False, (0,255,0))
                 
             if self.frame_idx % self.detect_interval == 0:

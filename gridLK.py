@@ -28,11 +28,17 @@ ret, old_frame = cap.read()
 
 old_t = time.time()
 
+step = 16
+h,w = old_frame.shape[:2]
+idx_y,idx_x = np.mgrid[step/2:h:step,step/2:w:step].astype(np.float32)
+indices =  np.stack( (idx_x,idx_y), axis =-1).reshape(-1,1,2)
+
 #old frame을 회색으로 변환 (밝기 향상성)
 old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
 p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
 
-print(p0.shape)
+print(p0.dtype)
+
 # Create a mask image for drawing purposes
 mask = np.zeros_like(old_frame)
 
@@ -43,8 +49,6 @@ vectors = list()
 old_speed = list()
 old_speed.append(0)
 
-#시간 변화 (영상의 경우: 영상의 fps 정보 기반,)
-#dt = 1/cap.get(cv.CAP_PROP_FPS)
 while True:
     ret, frame = cap.read()
     
@@ -58,20 +62,17 @@ while True:
     
     frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)    
     
-    #print(p0.shape,p1.shape)
     # calculate optical flow
-    p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params,flags=0)
-    #p0r, st, err = cv.calcOpticalFlowPyrLK(frame_gray,old_gray,p1,None,**lk_params,flags=0)
+    p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray,indices, None, **lk_params,flags=0)
     
-    #print("p0 : ",p0,"p0r : ",p0r,"d : ",p0 - p0r)
     # Select good points
     if p1 is not None:
         good_new = p1[st==1]
-        good_old = p0[st==1]
     
+    #print(p1)
     temp = list()
     # draw the tracks
-    for i, (new, old) in enumerate(zip(good_new, good_old)):
+    """for (new, old) in enumerate(zip(good_new, p0)):
         a, b = new.ravel()
         c, d = old.ravel()
         mask = cv.line(mask, (int(a), int(b)), (int(c), int(d)), color[i].tolist(), 2)
@@ -112,7 +113,7 @@ while True:
     # Now update the previous frame and previous points
     old_t = new_t
     old_gray = frame_gray.copy()
-    p0 = np.copy(p1)
+    p0 = np.copy(p1)"""
     
 cv.destroyAllWindows()
 

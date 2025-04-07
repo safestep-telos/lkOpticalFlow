@@ -78,5 +78,7 @@ while True:
     old_t = new_t
 cv.destroyAllWindows()
 
-print(vectors)
-print(time.time()-start)
+end = time.time()-start
+
+#print(vectors)
+print(end)
