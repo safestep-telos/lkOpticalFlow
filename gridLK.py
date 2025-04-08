@@ -74,9 +74,10 @@ while True:
     # Select good points
     if p1 is not None:
         #print(p1.shape,st.shape)
-        good_new = p1.reshape(-1,1,2)[st==1]
-        good_old = p0.reshape(-1,1,2)[st==1]
+        good_new = p1.reshape(-1,1,2)[((st==1) & (err < 4))]
+        good_old = p0.reshape(-1,1,2)[((st==1) & (err < 4))]
     
+    print(err)
     temp = list()
     flow = np.zeros((h,w,2),dtype=np.float32)
     # draw the tracks
@@ -112,9 +113,9 @@ while True:
         break
     
     # Now update the previous frame and previous points
-    #p0 = good_new.reshape(-1,1,2)
+    #p0 = p1.reshape(-1,1,2)
     #old_t = new_t
-    #old_gray = frame_gray.copy()
+    old_gray = frame_gray.copy()
     
 cv.destroyAllWindows()
 
