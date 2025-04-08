@@ -88,12 +88,12 @@ while True:
         dx, dy = new.ravel() - old.ravel()
         dx = int(dx)
         dy = int(dy)
-        cv.line(frame, (x,y), (x+dx, y+dy), (0,255, 0),2, cv.LINE_AA )
         #frame에서의 point와 old frame의 point의 차 = dx, dy
         
     for x, y in indices:
         cv.circle(frame, (x,y), 1, (0,255,0), -1)
         dx,dy = flow[y, x].astype(np.int64)
+        cv.line(frame, (x,y), (x+dx, y+dy), (0,255, 0),2, cv.LINE_AA )
         #cv.line(frame, (x,y), (x+dx, y+dy), (0,255, 0),2, cv.LINE_AA )
         
     #print(flow)   
@@ -112,6 +112,7 @@ while True:
         break
     
     # Now update the previous frame and previous points
+    #p0 = good_new.reshape(-1,1,2)
     #old_t = new_t
     #old_gray = frame_gray.copy()
     

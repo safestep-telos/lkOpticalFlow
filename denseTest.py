@@ -65,6 +65,8 @@ while True:
         isDownwards = False
         if angle > np.pi*(13/12) and angle < np.pi*(23/12):
             isDownwards = True
+            if speed > 25:
+                print("!!")
         vectors.append((new_t,speed,acceleration,angle,isDownwards))
     """hsv[..., 0] = ang*180/np.pi/2
     hsv[..., 2] = cv.normalize(mag, None, 0, 255, cv.NORM_MINMAX)
