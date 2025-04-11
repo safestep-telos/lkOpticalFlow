@@ -34,9 +34,6 @@ lk_params = dict( winSize  = (15, 15),
                   flags = 0,
                   minEigThreshold = 1e-4)
 
-# Create some random colors
-color = np.random.randint(0, 255, (100, 3))
-
 # Take first frame and find corners in it
 ret, old_frame = cap.read()
 
