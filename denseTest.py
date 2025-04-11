@@ -4,7 +4,7 @@ import argparse
 import time
 from collections import defaultdict
 
-start = time.time()
+code_start = time.time()
 parser = argparse.ArgumentParser()
 parser.add_argument('image', type=str, help='path to image file')
 args = parser.parse_args()
@@ -27,7 +27,7 @@ vectors = list()    #속도, 가속도, 아래로 이동했는지 여부
 #old_speed = defaultdict(float)
 old_speed = np.zeros((h, w), dtype=np.float32)
 #dt = 1/cap.get(cv.CAP_PROP_FPS)
-
+isStart = True
 while True:
     ret, frame2 = cap.read()
     
@@ -58,20 +58,22 @@ while True:
         dx,dy = flow[y, x].astype(np.int64)
         cv.line(frame2, (x,y), (x+dx, y+dy), (0,255, 0),2, cv.LINE_AA )
         #print(mag[y,x])
-        speed = float(mag[y,x])
+        """speed = float(mag[y,x])
         angle = float(ang[y,x])
         acceleration = float((speed - old_speed[y,x])/dt)
         old_speed[y,x] = speed
         isDownwards = False
         if angle > np.pi*(13/12) and angle < np.pi*(23/12):
-            isDownwards = True
-            if speed > 25:
-                print("!!")
-        vectors.append((new_t,speed,acceleration,angle,isDownwards))
+            isDownwards = True"""
+        #vectors.append((new_t,speed,acceleration,angle,isDownwards))
     """hsv[..., 0] = ang*180/np.pi/2
     hsv[..., 2] = cv.normalize(mag, None, 0, 255, cv.NORM_MINMAX)
     bgr = cv.cvtColor(hsv, cv.COLOR_HSV2BGR)"""
-    cv.imshow('frame2', frame2)
+    if isStart:
+        start = time.time()
+        print(start-code_start)
+        isStart = False
+    #cv.imshow('frame2', frame2)
     k = cv.waitKey(30) & 0xff
     if k == 27:
         break
@@ -82,4 +84,5 @@ cv.destroyAllWindows()
 end = time.time()-start
 
 #print(vectors)
+print(cap.get(cv.CAP_PROP_FRAME_COUNT)/cap.get(cv.CAP_PROP_FPS))
 print(end)

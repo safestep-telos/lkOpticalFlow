@@ -25,6 +25,7 @@ class App:
         self.height = int(self.cam.get(4))
         
     def run(self):
+        print(self.cam.get(cv.CAP_PROP_FRAME_COUNT)/self.cam.get(cv.CAP_PROP_FPS))
         while True:
             ret, frame = self.cam.read()
             
@@ -76,7 +77,7 @@ class App:
             self.frame_idx += 1
             self.prev_gray = frame_gray
             
-            cv.imshow("frame",vis)
+            #cv.imshow("frame",vis)
             
             k = cv.waitKey(30) & 0xff
             if k == 27:
