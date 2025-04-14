@@ -3,11 +3,6 @@ import cv2 as cv
 import argparse
 import time
 
-
-## 쓰레드 분리 (async()?), 그래도 렉걸리면 mediapipe 제거, 그리드 제거 고려(goodFeaturesToTrack 사용 고려), (업피라미드, 다운 피라미드 동시사용 고려)
-## vec -tiemstamp별 x,y,속도,각도,낙상여부
-code_start = time.time()
-
 """import mediapipe as mp
 
 mp_pose = mp.solutions.pose
@@ -57,17 +52,10 @@ old_speed = np.zeros((h, w), dtype=np.float32)
 frame_count = 0
 total_processing_time = 0
 
-def calcVec(new,old):
-    x, y = old.ravel()
-    x = int(x)
-    y = int(y)
-    dx,dy = new.ravel() - old.ravel()    
-    #vectors.append()
-    return x,y,dx,dy
-
 while True:
     ret, frame = cap.read()    
     start_time = time.time()
+    
     if not ret:
         print('No frames grabbed!')
         break
@@ -77,8 +65,7 @@ while True:
     dt = new_t - old_t
     
     if dt == 0:
-        dt += 1/60
-        
+        dt += 1/60        
         
     #frame_rgb = cv.cvtColor(frame,cv.COLOR_BGR2RGB)
     #results = pose.process(frame_rgb)
@@ -88,7 +75,7 @@ while True:
     # calculate optical flow
     p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray,p0, None, **lk_params)
     
-    mask = st==1#((st==1) & (err<8))
+    mask = ((st==1) & (err<8))
     
     # Select good points
     if p1 is not None:
@@ -110,26 +97,31 @@ while True:
                 isDownwards = True
         if speed > 1 and speed < 20:
             cv.line(frame, (int(c), int(d)), (int(a), int(b)), (0,0,255),2, cv.LINE_AA )
-        #vectors.append((new_t,speed,acceleration,isDownwards,angle))
         
-        #dx,dy = flow[y, x].astype(np.int64)
+    """for x, y in indices:
+        cv.circle(frame, (x,y), 2, (0,255,0), -1)"""
+        
+    flow = cv.calcOpticalFlowFarneback(old_gray, frame_gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+    
+    """for x, y in indices:
+        #cv.circle(frame_gray, (x,y), 2, (0,255,0), -1)
+        dx,dy = flow[y, x].astype(np.int64)
+        cv.line(frame, (x,y), (x+dx, y+dy), (0,255,0),2, cv.LINE_AA )"""
+        
     end_time = time.time()
     total_processing_time += (end_time - start_time)
     frame_count += 1
+    
     cv.imshow('frame', frame)
     
     #esc키를 누르면 종료
-    k = cv.waitKey(30) & 0xff
+    k = cv.waitKey(1) & 0xff
     
     if k == 27:
         break
     
-    # Now update the previous frame and previous points
-    #old_t = new_t
     old_gray = frame_gray
-    #p0 = good_new.reshape(-1,1,2)
     
 cv.destroyAllWindows()
 
 print(total_processing_time)
-#print(vectors)

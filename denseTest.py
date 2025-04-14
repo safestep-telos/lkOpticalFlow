@@ -12,6 +12,8 @@ args = parser.parse_args()
 cap = cv.VideoCapture(args.image)
 ret, frame1 = cap.read()
 
+print(cap.get(cv.CAP_PROP_FRAME_COUNT)/cap.get(cv.CAP_PROP_FPS))
+
 old_t = time.time()
 
 prvs = cv.cvtColor(frame1, cv.COLOR_BGR2GRAY)
@@ -27,9 +29,11 @@ vectors = list()    #속도, 가속도, 아래로 이동했는지 여부
 #old_speed = defaultdict(float)
 old_speed = np.zeros((h, w), dtype=np.float32)
 #dt = 1/cap.get(cv.CAP_PROP_FPS)
-isStart = True
+frame_count = 0
+total_processing_time = 0
 while True:
     ret, frame2 = cap.read()
+    start_time = time.time()
     
     if not ret:
         print('No frames grabbed!')
@@ -54,9 +58,9 @@ while True:
     mag, ang = cv.cartToPolar(flow[..., 0], flow[..., 1],angleInDegrees=False)
     
     for x, y in indices:
-        cv.circle(frame2, (x,y), 1, (0,255,0), -1)
+        cv.circle(frame2, (x,y), 2, (0,255,0), -1)
         dx,dy = flow[y, x].astype(np.int64)
-        cv.line(frame2, (x,y), (x+dx, y+dy), (0,255, 0),2, cv.LINE_AA )
+        cv.line(frame2, (x,y), (x+dx, y+dy), (0,0,255),2, cv.LINE_AA )
         #print(mag[y,x])
         """speed = float(mag[y,x])
         angle = float(ang[y,x])
@@ -69,20 +73,18 @@ while True:
     """hsv[..., 0] = ang*180/np.pi/2
     hsv[..., 2] = cv.normalize(mag, None, 0, 255, cv.NORM_MINMAX)
     bgr = cv.cvtColor(hsv, cv.COLOR_HSV2BGR)"""
-    if isStart:
-        start = time.time()
-        print(start-code_start)
-        isStart = False
-    #cv.imshow('frame2', frame2)
-    k = cv.waitKey(30) & 0xff
+    
+    end_time = time.time()
+    total_processing_time += (end_time - start_time)
+    frame_count += 1
+    cv.imshow('frame2',frame2)
+    k = cv.waitKey(1) & 0xff
     if k == 27:
         break
     prvs = next
     old_t = new_t
 cv.destroyAllWindows()
 
-end = time.time()-start
 
 #print(vectors)
-print(cap.get(cv.CAP_PROP_FRAME_COUNT)/cap.get(cv.CAP_PROP_FPS))
-print(end)
+print(total_processing_time)
